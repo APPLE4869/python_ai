@@ -38,22 +38,12 @@ HAND_P_ONE_HOT = [0, 0, 1]
 WIN_HAND = [HAND_P_ONE_HOT, HAND_G_ONE_HOT, HAND_C_ONE_HOT]
 
 # 学習率
-LEARNING_RATE = 0.0000001
+LEARNING_RATE = 0.0005
 
-
-
-'''リストをまとめてシャッフル'''
-def shuffle_lists(list1, list2):
-    seed = np.random.randint(0, 1000)
-    np.random.seed(seed)
-    np.random.shuffle(list1)
-    np.random.seed(seed)
-    np.random.shuffle(list2)
-
-
-'''シグモイド関数'''
+'''シグモイド関数（活性化関数の一種）'''
 # 活性化関数の一種。
 # 1 / 1 + exp(-a)
+# 参考資料 : https://mathtrain.jp/sigmoid
 #
 # @param  : numpy.ndarray
 # @return : numpy.ndarray
@@ -89,6 +79,14 @@ def forward_propagation(x, W1, W2):
 
 
 '''誤差逆伝播(学習)'''
+'''
+x  : 学習データ(入力値)
+z1 : ２層目の各値
+y  : 学習の予想結果
+d  : 教師データの結果
+W1 : 1→2層目の重み
+W2 : 2→3層目の重み
+'''
 def back_propagation(x, z1, y, d, W1, W2):
     delta2 = y - d
     grad_W2 = z1.T.dot(delta2)
@@ -100,32 +98,38 @@ def back_propagation(x, z1, y, d, W1, W2):
     W2 -= LEARNING_RATE * grad_W2
     W1 -= LEARNING_RATE * grad_W1
 
+    print(LEARNING_RATE * grad_W1)
+    print(W2)
+    print(W2.T)
+
+    return W1, W2
+
 
 '''学習データを与えて、モデルを学習'''
 def learn(train_X, train_Y, W1, W2):
-  for train_x, train_y in zip(train_X, train_Y):
-    # 順伝播
-    x = np.array(train_x)
-    y, z1 = forward_propagation(x, W1, W2)
+    for train_x, train_y in zip(train_X, train_Y):
+        # 順伝播
+        x = np.array(train_x)
+        y, z1 = forward_propagation(x, W1, W2)
 
-    # 誤差逆伝播
-    d = np.array(train_y) # 教師データ
-    back_propagation(x, z1, y, d, W1, W2)
+        # 誤差逆伝播
+        d = np.array(train_y) # 教師データ
+        W1, W2 = back_propagation(x, z1, y, d, W1, W2)
 
 
 '''モデルにじゃんけんをさせる。手を予想'''
 def predict(hand, W1, W2):
-  y, _ = forward_propagation(np.array(hand), W1, W2)
-  print(y)
-  print("君「" + HAND_NAMES[hand] + "には何を出せば勝てる？」")
-  print("AI「" + HAND_NAMES[y.argmax()] + "を出せば勝てるよ！」")
+    y, _ = forward_propagation(np.array(hand), W1, W2)
+    print(y)
+    print("君「" + HAND_NAMES[hand] + "には何を出せば勝てる？」")
+    print("AI「" + HAND_NAMES[y.argmax()] + "を出せば勝てるよ！」")
 
 
 '''重みの初期値を取得'''
 def get_initial_weights():
-  W1 = np.array([-23.2, 2.1, 231.9]) # 1層目→2層目の重み
-  W2 = np.array([[1.3, -8.3, 1.1], [2.5, 2, 1.4], [-1.1, 0.2, 1.8]]) # 2層目→3層目の重み
-  return W1, W2
+    W1 = np.array([0.1, 0.2, 0.1], dtype = 'float64') # 1層目→2層目の重み
+    W2 = np.array([[-0.1, 0.3, 0.1], [0.2, 0.1, 0.3], [0.1, 0.5, 0.1]], dtype = 'float64') # 2層目→3層目の重み
+    return W1, W2
 
 '''
 各層のニューロンの数
@@ -136,30 +140,30 @@ def get_initial_weights():
 
 '''main処理'''
 def main():
-  # 今回使う重み
-  # W1 : 1層目→2層目の重み
-  # W2 : 2層目→3層目の重み
-  W1, W2 = get_initial_weights()
+    # 今回使う重み
+    # W1 : 1層目→2層目の重み
+    # W2 : 2層目→3層目の重み
+    W1, W2 = get_initial_weights()
 
-  print("学習前のAI君とのやりとり")
-  predict(HAND_G, W1, W2)
-  predict(HAND_C, W1, W2)
-  predict(HAND_P, W1, W2)
-  print(W1)
-  print(W2)
+    print("学習前のAI君とのやりとり")
+    predict(HAND_G, W1, W2)
+    predict(HAND_C, W1, W2)
+    predict(HAND_P, W1, W2)
+    print(W1)
+    print(W2)
 
-  train_x = np.array([HAND_G, HAND_C, HAND_P]).repeat(1000)
-  train_y = np.array([WIN_HAND[HAND_G], WIN_HAND[HAND_C], WIN_HAND[HAND_P]]).repeat(1000)
-  shuffle_lists(train_x, train_y)
-  for _ in range(10):
-    learn(train_x, train_y, W1, W2)
+    train_x = np.array([HAND_G, HAND_C, HAND_P])
+    train_y = np.array([WIN_HAND[HAND_G], WIN_HAND[HAND_C], WIN_HAND[HAND_P]])
 
-  print("\n学習後のAI君とのやりとり")
-  predict(HAND_G, W1, W2)
-  predict(HAND_C, W1, W2)
-  predict(HAND_P, W1, W2)
-  print(W1)
-  print(W2)
+    for _ in range(15):
+        learn(train_x, train_y, W1, W2)
+
+    print("\n学習後のAI君とのやりとり")
+    predict(HAND_G, W1, W2)
+    predict(HAND_C, W1, W2)
+    predict(HAND_P, W1, W2)
+    print(W1)
+    print(W2)
 
 if __name__ == '__main__':
-    main()
+      main()
